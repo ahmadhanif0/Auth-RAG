@@ -5,12 +5,13 @@ from rag.embedding import embeddings
 VECTOR_DB_PATH = "chroma_db"
 
 
-def store_chunks_in_vector_db(chunks):
+def store_chunks_in_vector_db(chunks, file_id: int):
 
     vector_store = Chroma.from_documents(
         documents=chunks,
         embedding=embeddings,
-        persist_directory=VECTOR_DB_PATH
+        collection_name=f"file_{file_id}",
+        persist_directory=VECTOR_DB_PATH,
     )
 
     return vector_store

@@ -34,14 +34,14 @@ async def upload_pdf(file: UploadFile = FastAPIFile(...)):
 
         chunks = split_text_into_chunks(extracted_text)
 
-        vector_store = store_chunks_in_vector_db(chunks)
-
         file_obj = await File.create(
             filename=file.filename,
             file_path=file_location,
             file_type=ext,
-            extracted_text=extracted_text
+            extracted_text=extracted_text,
+            is_active=False
         )
+        vector_store = store_chunks_in_vector_db(chunks, file_obj.id)
 
         return {
             "message": "PDF uploaded and indexed successfully",
@@ -49,7 +49,32 @@ async def upload_pdf(file: UploadFile = FastAPIFile(...)):
         }
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=500,detail=str(e))
+    
+# Activate File
+@rag_router.post("/file/{file_id}/activate")
+async def activate_file(file_id: int):
+    file_obj = await File.get_or_none(id=file_id)
+    if not file_obj:
+        return {"error": "File not found"}
+    await File.filter().update(is_active=False)
+
+    file_obj.is_active = True
+    await file_obj.save()
+    return {
+        "message": f"{file_obj.filename} activated"
+    }
+
+# Deactivate File
+@rag_router.post("/file/{file_id}/deactivate")
+async def deactivate_file(file_id: int):
+    file_obj = await File.get_or_none(id=file_id)
+    if not file_obj:
+        return {"error": "File not found"}
+    await File.filter().update(is_active=False)
+
+    file_obj.is_active = False
+    await file_obj.save()
+    return {
+        "message": f"{file_obj.filename} deactivated"
+    }

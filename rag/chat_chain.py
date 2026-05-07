@@ -1,41 +1,28 @@
-from langchain_core.prompts import ChatPromptTemplate
+from models.file import File
 from rag.retriever import get_retriever
 from rag.llm import llm
 
 
-def get_rag_chain():
+async def get_rag_chain():
 
-    retriever = get_retriever()
+    active_file = await File.filter(is_active=True).first()
 
-    prompt = ChatPromptTemplate.from_template("""
-    You are a helpful assistant.
+    if not active_file:
+        return None
 
-    Use ONLY this context to answer:
-
-    {context}
-
-    Question: {question}
-    """)
-
-    def format_docs(docs):
-        return "\n\n".join([doc.page_content for doc in docs])
+    retriever = get_retriever(active_file.id)
 
     def rag_chain(question: str):
 
         docs = retriever.invoke(question)
 
-        context = format_docs(docs)
+        context = "\n\n".join([d.page_content for d in docs])
 
-        messages = prompt.format_messages(
-            context=context,
-            question=question
-        )
+        response = llm.invoke([
+            ("system", "Answer only from context"),
+            ("human", f"Context:\n{context}\n\nQuestion:{question}")
+        ])
 
-        response = llm.invoke(messages)
-
-        return {
-            "answer": response.content,
-            "context": context
-        }
+        return {"answer": response.content}
 
     return rag_chain

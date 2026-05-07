@@ -1,5 +1,6 @@
 from langchain_chroma import Chroma
 from rag.embedding import embeddings
+from models.file import File
 
 VECTOR_DB_PATH = "chroma_db"
 
@@ -11,12 +12,19 @@ def load_vector_store():
     )
 
 
-def get_retriever():
-    vector_store = load_vector_store()
+async def get_active_file_id():
+    active_file =  await File.filter(is_active=True).first()
+    return active_file.id if active_file else None
 
-    retriever = vector_store.as_retriever(
-        search_type="similarity",
-        search_kwargs={"k": 4}  # top 4 chunks
+def get_retriever(file_id: int):
+
+    vector_store = Chroma(
+        persist_directory=VECTOR_DB_PATH,
+        embedding_function=embeddings,
+        collection_name=f"file_{file_id}"
     )
 
-    return retriever
+    return vector_store.as_retriever(
+        search_type="similarity",
+        search_kwargs={"k": 4}
+    )

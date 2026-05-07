@@ -7,7 +7,7 @@ chat_router = APIRouter()
 @chat_router.post("/chat/")
 async def chat(query: str):
 
-    rag_chain = get_rag_chain()
+    rag_chain = await get_rag_chain()
 
     response = rag_chain(query)
 
